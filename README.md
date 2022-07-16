@@ -1,13 +1,18 @@
-# Sample Hardhat Project
+# Smart Contract for Warrenties using NFT
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## Planned Structure
 
-Try running some of the following tasks:
+- ### Owner
+  Deployer of the smart contract.
+- ### Admin
+  Admins of the smart contract. Can add/remove sellers.
+- ### Seller
+  Seller of the product/warranty.
 
-```shell
-npx hardhat help
-npx hardhat test
-GAS_REPORT=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
-```
+## Planning
+
+- Add mapping for isAdmin and isSeller so that frontend can check if user is admin or seller and display corresponding panel accordingly.
+
+## Yet to Plan
+
+- **Loyalty Program**.
