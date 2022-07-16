@@ -7,7 +7,35 @@ import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
-  constructor() ERC721('Warrenty', 'W') {}
+  address internal contractOwner;
+
+  mapping(address => bool) private isAdmin;
+
+  mapping(address => bool) private isSeller;
+
+  constructor() ERC721('Warrenty', 'W') {
+    contractOwner = msg.sender;
+  }
+
+  /**
+   * @notice Add a new admin
+   * @dev Only the contract owner and an existing admin can add a new admin
+   * @param _admin The new admin address
+   */
+  function addAdmin(address _admin) public {
+    require((msg.sender == contractOwner) || (isAdmin[msg.sender] == true));
+    isAdmin[_admin] = true;
+  }
+
+  /**
+   * @notice Add a new seller
+   * @dev Only the contract owner and the admins can add a new seller
+   * @param _seller The new seller address
+   */
+  function addSeller(address _seller) public {
+    require((msg.sender == contractOwner) || (isAdmin[msg.sender] == true));
+    isSeller[_seller] = true;
+  }
 
   /**
    * @notice mints a new token for the given buyer
@@ -16,7 +44,6 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @param serialNo serial number of the product
    * @param dataURI URI of the product
    */
-
   function mintWarrentyNFT(
     address buyer,
     uint256 serialNo,
@@ -25,6 +52,20 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     _mint(buyer, serialNo);
     _setTokenURI(serialNo, dataURI);
   }
+
+  function _beforeTokenTransfer(
+    address from,
+    address to,
+    uint256 //tokenId
+  ) internal virtual override {
+    require(from == address(0) || to == address(0));
+  }
+
+  function _afterTokenTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) internal virtual override {}
 
   // The following functions are overrides required by Solidity.
 
