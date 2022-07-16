@@ -11,8 +11,11 @@
 
 ## Planning
 
+-
 - Add mapping for isAdmin and isSeller so that frontend can check if user is admin or seller and display corresponding panel accordingly.
 
 ## Yet to Plan
 
 - **Loyalty Program**.
+- Implement automatic burn of tokens after warrenty expries.
+- Soulbound NFTs
