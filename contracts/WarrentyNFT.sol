@@ -13,6 +13,12 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
 
   mapping(address => bool) private isSeller;
 
+  mapping(uint256 => bool) private transferable;
+
+  mapping(uint256 => string) private issueDate;
+
+  mapping(uint256 => string) private warrentyPeriod;
+
   constructor() ERC721('Warrenty', 'W') {
     contractOwner = msg.sender;
   }
@@ -42,13 +48,18 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev serialNo of product is used as token id
    * @param buyer wallet address of the buyer
    * @param serialNo serial number of the product
+   * @param isSoulbound true if the product is soulbound
    * @param dataURI URI of the product
    */
   function mintWarrentyNFT(
     address buyer,
     uint256 serialNo,
+    bool isSoulbound,
     string memory dataURI
   ) public {
+    if (isSoulbound) {
+      transferable[serialNo] = false;
+    }
     _mint(buyer, serialNo);
     _setTokenURI(serialNo, dataURI);
   }
@@ -56,9 +67,14 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   function _beforeTokenTransfer(
     address from,
     address to,
-    uint256 //tokenId
+    uint256 tokenId
   ) internal virtual override {
-    require(from == address(0) || to == address(0));
+    if (transferable[tokenId] == false) {
+      require(
+        from == address(0) || to == address(0),
+        'Cannot transfer soulbound tokens'
+      );
+    }
   }
 
   function _afterTokenTransfer(
