@@ -10,14 +10,15 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   address internal contractOwner;
 
   mapping(address => bool) private isAdmin;
-
   mapping(address => bool) private isSeller;
 
   mapping(uint256 => bool) private transferable;
+  // Product ID to warrenty period
+  mapping(uint256 => uint256) private warrentyPeriod;
+  // tokenID to time stamp of when the token was created
+  mapping(uint256 => uint256) private issueTime;
 
-  mapping(uint256 => string) private issueDate;
-
-  mapping(uint256 => string) private warrentyPeriod;
+  event Repair(uint256 tokenID, string note);
 
   constructor() ERC721('Warrenty', 'W') {
     contractOwner = msg.sender;
@@ -29,18 +30,59 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @param _admin The new admin address
    */
   function addAdmin(address _admin) public {
-    require((msg.sender == contractOwner) || (isAdmin[msg.sender] == true));
+    require(
+      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
+      'Only the contract owner or an existing admin can add a new admin'
+    );
     isAdmin[_admin] = true;
+  }
+
+  /**
+   * @notice Remove an admin
+   * @dev Only the contract owner and an existing admin can remove an admin. An admin can remove themselves.
+   * @param _admin The admins address to remove
+   */
+  function removeAdmin(address _admin) public {
+    require(
+      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
+      'Only the contract owner or an existing admin can remove an admin'
+    );
+    isAdmin[_admin] = false;
   }
 
   /**
    * @notice Add a new seller
    * @dev Only the contract owner and the admins can add a new seller
-   * @param _seller The new seller address
+   * @param _seller The new seller address to add
    */
   function addSeller(address _seller) public {
-    require((msg.sender == contractOwner) || (isAdmin[msg.sender] == true));
+    require(
+      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
+      'Only the contract owner or an existing admin can add a new seller'
+    );
     isSeller[_seller] = true;
+  }
+
+  /**
+   * @notice Remove a seller
+   * @dev Only the contract owner and the admins can remove seller
+   * @param _seller The sellers address to remove
+   */
+  function removeSeller(address _seller) public {
+    require(
+      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
+      'Only the contract owner or an existing admin can remove a seller'
+    );
+    isSeller[_seller] = false;
+  }
+
+  function addProduct(
+    uint256 productID,
+    uint256 _warrentyPeriod,
+    bool _isSoulbound
+  ) public {
+    warrentyPeriod[productID] = _warrentyPeriod;
+    transferable[productID] = !_isSoulbound;
   }
 
   /**
@@ -48,20 +90,21 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev serialNo of product is used as token id
    * @param buyer wallet address of the buyer
    * @param serialNo serial number of the product
-   * @param isSoulbound true if the product is soulbound
    * @param dataURI URI of the product
    */
   function mintWarrentyNFT(
     address buyer,
     uint256 serialNo,
-    bool isSoulbound,
     string memory dataURI
   ) public {
-    if (isSoulbound) {
-      transferable[serialNo] = false;
-    }
-    _mint(buyer, serialNo);
+    issueTime[serialNo] = block.timestamp;
+    _safeMint(buyer, serialNo);
     _setTokenURI(serialNo, dataURI);
+  }
+
+  function repairProduct(uint256 serialNo, string memory note) public {
+    require(isSeller[msg.sender] == true);
+    emit Repair(serialNo, note);
   }
 
   function _beforeTokenTransfer(

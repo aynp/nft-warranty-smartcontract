@@ -14,9 +14,11 @@
 - #### Owner
   Deployer of the smart contract.
 - #### Admin
-  Admins of the smart contract. Can add/remove sellers.
+  Admins of the smart contract.
+  - Can add/remove sellers.
 - #### Seller
-  Seller of the product/warranty.
+  Seller of the product/warranty (Brands).
+  - Add/remove products (specify warrenty period of each product)
 
 ### Planning
 
