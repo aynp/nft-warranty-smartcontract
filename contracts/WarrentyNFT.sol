@@ -18,7 +18,12 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   // tokenID to time stamp of when the token was created
   mapping(uint256 => uint256) private issueTime;
 
-  event Repair(uint256 tokenID, string note);
+  event Repair(uint256 indexed tokenID, string note);
+  event Replace(
+    uint256 indexed tokenID,
+    uint256 indexed newTokenID,
+    string note
+  );
 
   constructor() ERC721('Warrenty', 'W') {
     contractOwner = msg.sender;
@@ -76,6 +81,13 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     isSeller[_seller] = false;
   }
 
+  /**
+   * @notice add a new product
+   * @dev only a registered seller can add a new product
+   * @param productID product ID of new product
+   * @param _warrentyPeriod warrenty period offered on the product
+   * @param _isSoulbound if the product warrenty is transferable or not
+   */
   function addProduct(
     uint256 productID,
     uint256 _warrentyPeriod,
@@ -102,11 +114,35 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     _setTokenURI(serialNo, dataURI);
   }
 
+  /**
+   * @notice Emits an event when the product is repaired
+   * @param serialNo serial number of the product repaired
+   * @param note note about repair
+   */
   function repairProduct(uint256 serialNo, string memory note) public {
-    require(isSeller[msg.sender] == true);
+    require(isSeller[msg.sender] == true, 'Only sellers can repair a product');
     emit Repair(serialNo, note);
   }
 
+  /**
+   * @notice Emits an event when the product is replaced
+   * @param tokenID token ID of the product to be replaced
+   * @param newTokenID token ID of the new product
+   * @param note note about replacement
+   */
+  function replaceProduct(
+    uint256 tokenID,
+    uint256 newTokenID,
+    string memory note
+  ) public {
+    require(isSeller[msg.sender] == true, 'Only sellers can replace a product');
+    issueTime[newTokenID] = issueTime[tokenID];
+    emit Replace(tokenID, newTokenID, note);
+  }
+
+  /**
+   * @dev Prevents transfering of soulbound tokens
+   */
   function _beforeTokenTransfer(
     address from,
     address to,
@@ -119,12 +155,6 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
       );
     }
   }
-
-  function _afterTokenTransfer(
-    address from,
-    address to,
-    uint256 tokenId
-  ) internal virtual override {}
 
   // The following functions are overrides required by Solidity.
 
