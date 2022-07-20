@@ -93,6 +93,10 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     uint256 _warrentyPeriod,
     bool _isSoulbound
   ) public {
+    require(
+      isSeller[msg.sender],
+      'Only a registered seller can add a new product'
+    );
     warrentyPeriod[productID] = _warrentyPeriod;
     transferable[productID] = !_isSoulbound;
   }
@@ -101,27 +105,37 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @notice mints a new token for the given buyer
    * @dev serialNo of product is used as token id
    * @param buyer wallet address of the buyer
-   * @param serialNo serial number of the product
+   * @param tokenID tokenID of the product ([productID][serialNo])
    * @param dataURI URI of the product
    */
   function mintWarrentyNFT(
     address buyer,
+    uint256 productID,
     uint256 serialNo,
+    uint256 tokenID,
     string memory dataURI
   ) public {
-    issueTime[serialNo] = block.timestamp;
-    _safeMint(buyer, serialNo);
-    _setTokenURI(serialNo, dataURI);
+    require(
+      isSeller[msg.sender],
+      'Only a registered seller can mint a new product'
+    );
+    issueTime[tokenID] = block.timestamp;
+    _safeMint(buyer, tokenID);
+    _setTokenURI(tokenID, dataURI);
   }
 
   /**
    * @notice Emits an event when the product is repaired
-   * @param serialNo serial number of the product repaired
+   * @param tokenID token ID of the product repaired
    * @param note note about repair
    */
-  function repairProduct(uint256 serialNo, string memory note) public {
+  function repairProduct(uint256 tokenID, string memory note) public {
     require(isSeller[msg.sender] == true, 'Only sellers can repair a product');
-    emit Repair(serialNo, note);
+    require(
+      ownerOf(tokenID) != address(0),
+      'The product either does not exist or has not been sold yet'
+    );
+    emit Repair(tokenID, note);
   }
 
   /**
@@ -136,6 +150,10 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     string memory note
   ) public {
     require(isSeller[msg.sender] == true, 'Only sellers can replace a product');
+    require(
+      ownerOf(tokenID) != address(0),
+      'The product either does not exist or has not been sold yet'
+    );
     issueTime[newTokenID] = issueTime[tokenID];
     emit Replace(tokenID, newTokenID, note);
   }
