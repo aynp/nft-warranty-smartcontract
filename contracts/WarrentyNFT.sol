@@ -6,27 +6,76 @@ import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
+import '@openzeppelin/contracts/utils/Strings.sol';
+
 contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   address internal contractOwner;
 
-  mapping(address => bool) private isAdmin;
-  mapping(address => bool) private isSeller;
+  mapping(address => bool) public isAdmin;
+  mapping(address => bool) public isSeller;
 
-  mapping(uint256 => bool) private transferable;
-  // Product ID to warrenty period
-  mapping(uint256 => uint256) private warrentyPeriod;
-  // tokenID to time stamp of when the token was created
+  mapping(uint256 => bool) private productTransferable;
+  mapping(uint256 => uint256) private productWarrentyPeriod;
+
+  mapping(uint256 => address) private sellerOf;
   mapping(uint256 => uint256) private issueTime;
+  mapping(uint256 => bool) private transferable;
+  mapping(uint256 => uint256) private warrentyPeriod;
 
-  event Repair(uint256 indexed tokenID, string note);
-  event Replace(
-    uint256 indexed tokenID,
-    uint256 indexed newTokenID,
-    string note
-  );
+  event Repair(uint256 indexed tokenID);
+  event Replace(uint256 indexed tokenID, uint256 indexed newTokenID);
+
+  modifier adminOnly() {
+    require(isAdmin[msg.sender], 'Admin only function');
+    _;
+  }
+
+  modifier sellerOnly() {
+    require(isSeller[msg.sender], 'Seller only function');
+    _;
+  }
+
+  modifier adminOrSellerOnly() {
+    require(
+      isAdmin[msg.sender] || isSeller[msg.sender],
+      'Admin or Seller only function'
+    );
+    _;
+  }
+
+  /**
+   * @dev if the product with tokenID exists or not
+   */
+  modifier exists(uint256 tokenID) {
+    require(
+      ownerOf(tokenID) != address(0),
+      'The product either does not exist or has not been sold yet'
+    );
+    _;
+  }
+
+  /**
+   * @dev if the product with tokenID is in warranty period or not
+   */
+  modifier inWarrenty(uint256 tokenID) {
+    require(
+      issueTime[tokenID] + warrentyPeriod[tokenID] > block.timestamp,
+      'The product is not in warranty period'
+    );
+    _;
+  }
+
+  /**
+   * @dev verify if the seller is the one attempting repairs or replacements
+   */
+  modifier verifySeller(uint256 tokenID) {
+    require(sellerOf[tokenID] == msg.sender, 'You are not the seller');
+    _;
+  }
 
   constructor() ERC721('Warrenty', 'W') {
     contractOwner = msg.sender;
+    isAdmin[contractOwner] = true;
   }
 
   /**
@@ -34,11 +83,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev Only the contract owner and an existing admin can add a new admin
    * @param _admin The new admin address
    */
-  function addAdmin(address _admin) public {
-    require(
-      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
-      'Only the contract owner or an existing admin can add a new admin'
-    );
+  function addAdmin(address _admin) public adminOnly {
     isAdmin[_admin] = true;
   }
 
@@ -47,11 +92,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev Only the contract owner and an existing admin can remove an admin. An admin can remove themselves.
    * @param _admin The admins address to remove
    */
-  function removeAdmin(address _admin) public {
-    require(
-      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
-      'Only the contract owner or an existing admin can remove an admin'
-    );
+  function removeAdmin(address _admin) public adminOnly {
     isAdmin[_admin] = false;
   }
 
@@ -60,11 +101,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev Only the contract owner and the admins can add a new seller
    * @param _seller The new seller address to add
    */
-  function addSeller(address _seller) public {
-    require(
-      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
-      'Only the contract owner or an existing admin can add a new seller'
-    );
+  function addSeller(address _seller) public adminOnly {
     isSeller[_seller] = true;
   }
 
@@ -73,11 +110,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @dev Only the contract owner and the admins can remove seller
    * @param _seller The sellers address to remove
    */
-  function removeSeller(address _seller) public {
-    require(
-      (msg.sender == contractOwner) || (isAdmin[msg.sender] == true),
-      'Only the contract owner or an existing admin can remove a seller'
-    );
+  function removeSeller(address _seller) public adminOnly {
     isSeller[_seller] = false;
   }
 
@@ -92,70 +125,61 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     uint256 productID,
     uint256 _warrentyPeriod,
     bool _isSoulbound
-  ) public {
-    require(
-      isSeller[msg.sender],
-      'Only a registered seller can add a new product'
-    );
+  ) public sellerOnly {
     warrentyPeriod[productID] = _warrentyPeriod;
-    transferable[productID] = !_isSoulbound;
+    productTransferable[productID] = !_isSoulbound;
+  }
+
+  function _baseURI() internal pure override returns (string memory) {
+    return 'https://';
   }
 
   /**
    * @notice mints a new token for the given buyer
    * @dev serialNo of product is used as token id
    * @param buyer wallet address of the buyer
-   * @param tokenID tokenID of the product ([productID][serialNo])
-   * @param dataURI URI of the product
+   * @param tokenID tokenID of the product
    */
   function mintWarrentyNFT(
     address buyer,
     uint256 productID,
-    uint256 serialNo,
-    uint256 tokenID,
-    string memory dataURI
-  ) public {
-    require(
-      isSeller[msg.sender],
-      'Only a registered seller can mint a new product'
-    );
+    uint256 tokenID
+  ) public sellerOnly {
+    sellerOf[tokenID] = msg.sender;
     issueTime[tokenID] = block.timestamp;
+    warrentyPeriod[tokenID] = productWarrentyPeriod[productID];
     _safeMint(buyer, tokenID);
-    _setTokenURI(tokenID, dataURI);
+    _setTokenURI(tokenID, Strings.toString(productID));
   }
 
   /**
    * @notice Emits an event when the product is repaired
    * @param tokenID token ID of the product repaired
-   * @param note note about repair
    */
-  function repairProduct(uint256 tokenID, string memory note) public {
-    require(isSeller[msg.sender] == true, 'Only sellers can repair a product');
-    require(
-      ownerOf(tokenID) != address(0),
-      'The product either does not exist or has not been sold yet'
-    );
-    emit Repair(tokenID, note);
+  function repairProduct(uint256 tokenID)
+    public
+    sellerOnly
+    exists(tokenID)
+    inWarrenty(tokenID)
+    verifySeller(tokenID)
+  {
+    emit Repair(tokenID);
   }
 
   /**
    * @notice Emits an event when the product is replaced
    * @param tokenID token ID of the product to be replaced
    * @param newTokenID token ID of the new product
-   * @param note note about replacement
    */
-  function replaceProduct(
-    uint256 tokenID,
-    uint256 newTokenID,
-    string memory note
-  ) public {
-    require(isSeller[msg.sender] == true, 'Only sellers can replace a product');
-    require(
-      ownerOf(tokenID) != address(0),
-      'The product either does not exist or has not been sold yet'
-    );
+  function replaceProduct(uint256 tokenID, uint256 newTokenID)
+    public
+    sellerOnly
+    exists(tokenID)
+    inWarrenty(tokenID)
+    verifySeller(tokenID)
+  {
     issueTime[newTokenID] = issueTime[tokenID];
-    emit Replace(tokenID, newTokenID, note);
+    emit Replace(tokenID, newTokenID);
   }
 
   /**
@@ -164,9 +188,9 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   function _beforeTokenTransfer(
     address from,
     address to,
-    uint256 tokenId
+    uint256 tokenID
   ) internal virtual override {
-    if (transferable[tokenId] == false) {
+    if (transferable[tokenID] == false) {
       require(
         from == address(0) || to == address(0),
         'Cannot transfer soulbound tokens'

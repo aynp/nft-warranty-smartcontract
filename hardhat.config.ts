@@ -2,7 +2,7 @@ import { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-toolbox';
 
 import dotenv from 'dotenv';
-dotenv.config({ path: './process.env' });
+dotenv.config();
 
 const { API_URL, PRIVATE_KEY } = process.env;
 
@@ -17,7 +17,7 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    artifacts: '../client/src/artifacts',
+    artifacts: '../nft-warrenty-client/src/artifacts',
   },
 };
 
