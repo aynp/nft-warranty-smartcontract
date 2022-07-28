@@ -15,6 +15,10 @@ const config: HardhatUserConfig = {
       url: API_URL,
       accounts: [`0x${PRIVATE_KEY}`],
     },
+    goerli: {
+      url: `${API_URL}`,
+      accounts: [PRIVATE_KEY as string],
+    },
   },
   paths: {
     artifacts: '../nft-warrenty-client/src/artifacts',

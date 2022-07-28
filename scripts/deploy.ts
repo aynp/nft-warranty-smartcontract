@@ -1,6 +1,7 @@
 import { ethers } from 'hardhat';
 
 async function main() {
+  console.log('Deploying...');
   const WarrentyNFTContract = await ethers.getContractFactory('WarrentyNFT');
   const warrentyNFT = await WarrentyNFTContract.deploy();
   await warrentyNFT.deployed();

@@ -14,13 +14,13 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   mapping(address => bool) public isAdmin;
   mapping(address => bool) public isSeller;
 
-  mapping(uint256 => bool) private productTransferable;
-  mapping(uint256 => uint256) private productWarrentyPeriod;
+  mapping(uint256 => bool) public productTransferable;
+  mapping(uint256 => uint256) public productWarrentyPeriod;
 
-  mapping(uint256 => address) private sellerOf;
-  mapping(uint256 => uint256) private issueTime;
-  mapping(uint256 => bool) private transferable;
-  mapping(uint256 => uint256) private warrentyPeriod;
+  mapping(uint256 => address) public sellerOf;
+  mapping(uint256 => uint256) public issueTime;
+  mapping(uint256 => bool) public transferable;
+  mapping(uint256 => uint256) public warrentyPeriod;
 
   event Repair(uint256 indexed tokenID);
   event Replace(uint256 indexed tokenID, uint256 indexed newTokenID);
