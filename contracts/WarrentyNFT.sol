@@ -126,7 +126,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     uint256 _warrentyPeriod,
     bool _isSoulbound
   ) public sellerOnly {
-    warrentyPeriod[productID] = _warrentyPeriod;
+    productWarrentyPeriod[productID] = _warrentyPeriod;
     productTransferable[productID] = !_isSoulbound;
   }
 
