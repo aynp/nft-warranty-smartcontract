@@ -182,6 +182,11 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     emit Replace(tokenID, newTokenID);
   }
 
+  function isOwner(uint256 tokenID) public view returns (bool) {
+    if (ownerOf(tokenID) == msg.sender) return true;
+    else return false;
+  }
+
   /**
    * @dev Prevents transfering of soulbound tokens
    */
