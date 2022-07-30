@@ -18,7 +18,7 @@
   - Can add/remove sellers.
 - #### Seller
   Seller of the product/warranty (Brands).
-  - Add/remove products (specify warrenty period of each product)
+  - Add/remove products (specify warranty period of each product)
 
 ### Planning
 
@@ -29,4 +29,4 @@
 ### Yet to Plan
 
 - **Loyalty Program**.
-- Implement automatic burn of tokens after warrenty expries.
+- Implement automatic burn of tokens after warranty expries.

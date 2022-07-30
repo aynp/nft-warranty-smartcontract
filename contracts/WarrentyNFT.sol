@@ -8,19 +8,19 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 import '@openzeppelin/contracts/utils/Strings.sol';
 
-contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
+contract WarrantyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   address internal contractOwner;
 
   mapping(address => bool) public isAdmin;
   mapping(address => bool) public isSeller;
 
   mapping(uint256 => bool) public productTransferable;
-  mapping(uint256 => uint256) public productWarrentyPeriod;
+  mapping(uint256 => uint256) public productWarrantyPeriod;
 
   mapping(uint256 => address) public sellerOf;
   mapping(uint256 => uint256) public issueTime;
   mapping(uint256 => bool) public transferable;
-  mapping(uint256 => uint256) public warrentyPeriod;
+  mapping(uint256 => uint256) public warrantyPeriod;
 
   event Repair(uint256 indexed tokenID);
   event Replace(uint256 indexed tokenID, uint256 indexed newTokenID);
@@ -57,9 +57,9 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
   /**
    * @dev if the product with tokenID is in warranty period or not
    */
-  modifier inWarrenty(uint256 tokenID) {
+  modifier inWarranty(uint256 tokenID) {
     require(
-      issueTime[tokenID] + warrentyPeriod[tokenID] > block.timestamp,
+      issueTime[tokenID] + warrantyPeriod[tokenID] > block.timestamp,
       'The product is not in warranty period'
     );
     _;
@@ -73,7 +73,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     _;
   }
 
-  constructor() ERC721('Warrenty', 'W') {
+  constructor() ERC721('Warranty', 'W') {
     contractOwner = msg.sender;
     isAdmin[contractOwner] = true;
   }
@@ -118,15 +118,15 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @notice add a new product
    * @dev only a registered seller can add a new product
    * @param productID product ID of new product
-   * @param _warrentyPeriod warrenty period offered on the product
-   * @param _isSoulbound if the product warrenty is transferable or not
+   * @param _warrantyPeriod warranty period offered on the product
+   * @param _isSoulbound if the product warranty is transferable or not
    */
   function addProduct(
     uint256 productID,
-    uint256 _warrentyPeriod,
+    uint256 _warrantyPeriod,
     bool _isSoulbound
   ) public sellerOnly {
-    productWarrentyPeriod[productID] = _warrentyPeriod;
+    productWarrantyPeriod[productID] = _warrantyPeriod;
     productTransferable[productID] = !_isSoulbound;
   }
 
@@ -140,14 +140,14 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
    * @param buyer wallet address of the buyer
    * @param tokenID tokenID of the product
    */
-  function mintWarrentyNFT(
+  function mintWarrantyNFT(
     address buyer,
     uint256 productID,
     uint256 tokenID
   ) public sellerOnly {
     sellerOf[tokenID] = msg.sender;
     issueTime[tokenID] = block.timestamp;
-    warrentyPeriod[tokenID] = productWarrentyPeriod[productID];
+    warrantyPeriod[tokenID] = productWarrantyPeriod[productID];
     _safeMint(buyer, tokenID);
     _setTokenURI(tokenID, Strings.toString(productID));
   }
@@ -160,7 +160,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     public
     sellerOnly
     exists(tokenID)
-    inWarrenty(tokenID)
+    inWarranty(tokenID)
     verifySeller(tokenID)
   {
     emit Repair(tokenID);
@@ -175,7 +175,7 @@ contract WarrentyNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     public
     sellerOnly
     exists(tokenID)
-    inWarrenty(tokenID)
+    inWarranty(tokenID)
     verifySeller(tokenID)
   {
     issueTime[newTokenID] = issueTime[tokenID];

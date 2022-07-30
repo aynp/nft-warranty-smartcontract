@@ -21,7 +21,7 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    artifacts: '../nft-warrenty-client/src/artifacts',
+    artifacts: '../nft-warranty-client/src/artifacts',
   },
 };
 
